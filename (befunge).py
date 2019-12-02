@@ -4,6 +4,7 @@ import os
 import sys
 from dataclasses import dataclass
 import itertools
+import string
 
 DEBUG = 'DEBUG' in os.environ
 
@@ -35,22 +36,40 @@ class Stack:
     def push(self, val):
         self.s.append(val)
 
+printable = string.ascii_letters + string.digits + string.punctuation + ' '
+def print_state(pc, stack, prog):
+    print('pc:', pc)
+    print('stack:', stack.s)
+    xs = []
+    for row, chs in enumerate(prog):
+        for col, ch in enumerate(chs):
+            if row == pc.row and col == pc.col:
+                print('\u001b[44m\u001b[37;1m', end='')
+            if isinstance(ch, int):
+                print('X', end='')
+                xs.append((row, col, ch))
+            else:
+                print(ch, end='')
+            print('\u001b[0m', end='')
+        print()
+    for row, col, x in xs:
+        print(f'({row},{col}): {x}')
+
 if __name__ == '__main__':
     prog = [[' ' for _ in range(80)] for _ in range(25)]
     with open(sys.argv[1], 'r') as f:
         for row, line in enumerate(itertools.islice(f, 25)):
-            for col, ch in enumerate(itertools.islice(line, 80)):
+            for col, ch in enumerate(itertools.islice(line.rstrip('\n'), 80)):
                 prog[row][col] = ch
     pc = PC(row=0, col=0, direction='>', str_mode=False)
     stack = Stack()
-    stdin = iter(sys.stdin)
+    stdin = iter(open(sys.argv[2], 'r'))
     while True:
         ins = prog[pc.row][pc.col]
         if DEBUG:
-            print('stack:', stack.s)
-            print('pc:', pc)
-            print('ins:', ins)
-            import time; time.sleep(1)
+            print_state(pc, stack, prog)
+            print('> ', end='')
+            cmd = input().split()
         if ins == '"':
             pc.str_mode = not pc.str_mode
         elif pc.str_mode:
